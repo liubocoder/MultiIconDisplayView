@@ -1,6 +1,7 @@
 package cn.lb.viewlibrary;
 
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.ColorFilter;
 import android.graphics.Paint;
@@ -17,6 +18,10 @@ import java.util.List;
 
 public class MultiIconDisplayView extends View {
     private static final boolean DEBUG = true;
+
+    //默认个数 当未设置个数和item尺寸的时候有效
+    private static final int SF_DEF_ITEM_NUM = 6;
+
     public MultiIconDisplayView(Context context) {
         this(context, null);
     }
@@ -28,9 +33,55 @@ public class MultiIconDisplayView extends View {
 
     private void init(Context context, AttributeSet attrs) {
         mLinePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        if (attrs != null) {
+            TypedArray ta = context.obtainStyledAttributes(attrs, R.styleable.MultiIconDisplayView);
+            int vaSize = ta.getDimensionPixelSize(R.styleable.MultiIconDisplayView_VarietySize, 0);
+            int hSpan = ta.getDimensionPixelSize(R.styleable.MultiIconDisplayView_HorizontalSpan, 0);
+            int vSpan = ta.getDimensionPixelSize(R.styleable.MultiIconDisplayView_VerticalSpan, 0);
+            int vaSpan = ta.getDimensionPixelSize(R.styleable.MultiIconDisplayView_VarietySpan, 0);
+            int itemSize = ta.getDimensionPixelSize(R.styleable.MultiIconDisplayView_ItemSize, 0);
+            int itemCount = ta.getInt(R.styleable.MultiIconDisplayView_ItemCount, 0);
+
+            mItemSize = itemSize;
+            if (itemCount != 0) {
+                mItemCount = itemCount;
+            }
+
+            if (vaSize != 0) {
+                mVarietySize = vaSize;
+            }
+
+            if (hSpan !=0) {
+                mHorizontalSpan = hSpan;
+            } else {
+                float hSpanScale = ta.getFloat(R.styleable.MultiIconDisplayView_HorizontalSpanScale, 0F);
+                if (isCorrectPercentScale(hSpanScale)) {
+                    mHorizontalSpanScale = hSpanScale / 100F;
+                }
+            }
+
+            if (vSpan != 0) {
+                mVerticalSpan = vSpan;
+            } else {
+                float vSpanScale = ta.getFloat(R.styleable.MultiIconDisplayView_VerticalSpanScale, 0F);
+                if (isCorrectPercentScale(vSpanScale)) {
+                    mVerticalSpanScale = vSpanScale / 100F;
+                }
+            }
+
+            if (vaSpan != 0) {
+                mVarietySpan = vaSpan;
+            } else {
+                float vaSpanScale = ta.getFloat(R.styleable.MultiIconDisplayView_VarietySpanScale, 0F);
+                if (isCorrectPercentScale(vaSpanScale)) {
+                    mVarietySpanScale = vaSpanScale / 100F;
+                }
+            }
+
+            ta.recycle();
+        }
 
         if (DEBUG) {
-
             GradientDrawable debugDrawable = new GradientDrawable();
             debugDrawable.setColor(0xFF00A080);
             debugDrawable.setShape(GradientDrawable.RECTANGLE);
@@ -50,8 +101,17 @@ public class MultiIconDisplayView extends View {
         }
     }
 
+    private boolean isCorrectPercentScale(float v) {
+        return v > 0F && v < 100F;
+    }
+
     private Paint mLinePaint;
     private int mOritation = LinearLayout.VERTICAL;
+
+    //比例设置 0-1F
+    private float mHorizontalSpanScale = 0F;
+    private float mVerticalSpanScale = 0F;
+    private float mVarietySpanScale = 0F;
 
     //水平方向的间距
     private int mHorizontalSpan = 10;
@@ -68,11 +128,84 @@ public class MultiIconDisplayView extends View {
     private boolean mHorizontalBoundValid = true;
     private boolean mVerticalSpanBoundValid = true;
 
+    /**
+     * 设置分类间隔 相对于控件宽高
+     * @param scale 百分比
+     */
+    public void setVarietySpanScale(float scale) {
+        this.mVarietySpanScale = scale;
+    }
+
+    /**
+     * 设置水平方向上竖线 相对于控件宽高的比例
+     * @param scale 百分比
+     */
+    public void setHorizontalSpanScale(float scale) {
+        this.mHorizontalSpanScale = scale / 100;
+    }
+
+    /**
+     * 设置竖直方向上横线 相对于控件宽高的比例
+     * @param scale 百分比
+     */
+    public void setVerticalSpanScale(float scale) {
+        this.mVerticalSpanScale = scale / 100;
+    }
+
+    /**
+     * 设置水平方向上的竖线宽度
+     * @param span px
+     */
+    public void setHorizontalSpan(int span) {
+        this.mHorizontalSpan = span;
+    }
+
+    /**
+     * 设置竖直方向上的横线宽度
+     * @param span px
+     */
+    public void setVerticalSpan(int span) {
+        this.mVerticalSpan = span;
+    }
+
+    /**
+     * 设置分类线的宽度
+     * @param size px
+     */
+    public void setVarietySize(int size) {
+        this.mVarietySize = size;
+    }
+
+    /**
+     * 设置分类线的颜色
+     * @param color argb
+     */
+    public void setVarietyColor(int color) {
+        this.mVarietyColor = color;
+    }
+
+    /**
+     * 设置每一个item的尺寸 优先级低于设置item的个数
+     * @param size px
+     */
+    public void setItemSize(int size) {
+        if (size > 0) {
+            this.mItemSize = size;
+        }
+    }
+    public void setItemCount(int count) {
+        if (mItemCount > 0) {
+            this.mItemCount = count;
+        }
+    }
+
+    //每一个item尺寸
     private int mItemSize = 0;
     //每一行的item个数
     private int mItemCount = SF_DEF_ITEM_NUM;
-    //默认个数 当未设置个数和item尺寸的时候有效
-    private static final int SF_DEF_ITEM_NUM = 6;
+
+    private int mMeasureItemCount;
+    private int mMeasureItemSize;
 
     private List<IconItem>[] mItems;
     public void setItems(List<Drawable> ... items) {
@@ -161,25 +294,32 @@ public class MultiIconDisplayView extends View {
             heightCount = 0;
         }
 
+        mMeasureItemCount = row;
+        mMeasureItemSize = itemSize;
+
         setMeasuredDimension(w, heightCount);
     }
 
-    private int getVarietySpan(int measureWidth, int measureHeight) {
-        return mVarietySpan;
+    private int getVarietySpan(int w, int h) {
+        return mVarietySpanScale != 0 ?
+                ((int) (mVarietySpanScale * getStandardSide(w, h))) : mVarietySpan;
     }
 
-    private int getVerticalSpan(int measureWidth, int measureHeight) {
-        if (mOritation == LinearLayout.VERTICAL) {
-            return mVerticalSpan;
-        } else {
-            return mVerticalSpan;
-        }
+    private int getVerticalSpan(int w, int h) {
+        return mVerticalSpanScale != 0 ?
+                ((int) (mVerticalSpanScale * getStandardSide(w, h))) : mVerticalSpan;
     }
-    private int getHorizontalSpan(int measureWidth, int measureHeight) {
+
+    private int getHorizontalSpan(int w, int h) {
+        return mHorizontalSpanScale != 0 ?
+                ((int) (mHorizontalSpanScale * getStandardSide(w, h))) : mHorizontalSpan;
+    }
+
+    private int getStandardSide(int width,  int height) {
         if (mOritation == LinearLayout.VERTICAL) {
-            return mHorizontalSpan;
+            return width;
         } else {
-            return mHorizontalSpan;
+            return height;
         }
     }
 
@@ -199,8 +339,8 @@ public class MultiIconDisplayView extends View {
             // Vertical style
             if (i != 0) {
                 IconItem lastItem;
-                if (vItems.size() >= mItemCount) {
-                    lastItem = vItems.get(mItemCount - 1);
+                if (vItems.size() >= mMeasureItemCount) {
+                    lastItem = vItems.get(mMeasureItemCount - 1);
                 } else {
                     lastItem = vItems.get(vItems.size() - 1);
                 }
