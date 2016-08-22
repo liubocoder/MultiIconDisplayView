@@ -96,8 +96,11 @@ public class MultiIconDisplayView extends View {
             for (int i = 0; i < 4; i++) {
                 list1.add(drawable);
             }
+            List<List<Drawable>> all = new ArrayList<>();
+            all.add(list);
+            all.add(list1);
 
-            setItems(list, list, list);
+            setItems(all);
         }
     }
 
@@ -125,8 +128,8 @@ public class MultiIconDisplayView extends View {
     private int mVarietyColor = 0x80FFFFFF;
 
     //边界有效
-    private boolean mHorizontalBoundValid = true;
-    private boolean mVerticalSpanBoundValid = true;
+    private boolean mHorizontalBoundValid = false;
+    private boolean mVerticalSpanBoundValid = false;
 
     /**
      * 设置分类间隔 相对于控件宽高
@@ -208,20 +211,29 @@ public class MultiIconDisplayView extends View {
     private int mMeasureItemSize;
 
     private List<IconItem>[] mItems;
-    public void setItems(List<Drawable> ... items) {
-        List<IconItem>[] oldItems = new List[items.length];
-        for (int i = 0; i < items.length; i++) {
-            ArrayList<IconItem> listItem = new ArrayList<>();
-            IconItem iconItem;
-            for (int idx = 0, n = items[i].size(); idx < n; idx++) {
-                iconItem = new IconItem(items[i].get(idx), new Rect());
-                listItem.add(iconItem);
+
+    /**
+     * 设置需要显示的图片，允许为空
+     */
+    @SuppressWarnings("unchecked")
+    public void setItems(List<List<Drawable>> items) {
+        List<IconItem>[] newItems = null;
+
+        if (items != null) {
+            newItems = new List[items.size()];
+            for (int i = 0; i < items.size(); i++) {
+                ArrayList<IconItem> listItem = new ArrayList<>();
+                IconItem iconItem;
+                for (int idx = 0, n = items.get(i).size(); idx < n; idx++) {
+                    iconItem = new IconItem(items.get(i).get(idx), new Rect());
+                    listItem.add(iconItem);
+                }
+                newItems[i] = listItem;
             }
-            oldItems[i] = listItem;
         }
 
         //FIXME 通过计算 判断是否需要重新计算布局
-        mItems = oldItems;
+        mItems = newItems;
         if (getMeasuredWidth() != 0) {
             requestLayout();
         }
@@ -243,9 +255,14 @@ public class MultiIconDisplayView extends View {
     }
 
     private void measureVerticalLayout(int widthMeasureSpec, int heightMeasureSpec) {
-        int w = View.MeasureSpec.getSize(widthMeasureSpec);
-        int h = View.MeasureSpec.getSize(heightMeasureSpec);
-        int hm = View.MeasureSpec.getMode(heightMeasureSpec);
+        int w = MeasureSpec.getSize(widthMeasureSpec);
+        int h = MeasureSpec.getSize(heightMeasureSpec);
+        int hm = MeasureSpec.getMode(heightMeasureSpec);
+
+        if (mItems == null) {
+            setMeasuredDimension(w, 0);
+            return;
+        }
 
         int row = 0;
         int itemSize = 0;
@@ -332,6 +349,10 @@ public class MultiIconDisplayView extends View {
             List<IconItem> vItems = mItems[i];
             int j = 0;
             int k = vItems.size();
+            if (k == 0) {
+                continue;
+            }
+
             for (;j < k; j++) {
                 vItems.get(j).draw(canvas);
             }
