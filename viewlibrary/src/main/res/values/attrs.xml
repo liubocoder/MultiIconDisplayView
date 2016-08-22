@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <declare-styleable name="MultiIconDisplayView">
+        <attr name="HorizontalSpanScale" format="float"/>
+        <attr name="HorizontalSpan" format="dimension"/>
+
+        <attr name="VerticalSpanScale" format="float"/>
+        <attr name="VerticalSpan" format="dimension"/>
+
+        <attr name="VarietySpanScale" format="float"/>
+        <attr name="VarietySpan" format="dimension"/>
+
+        <attr name="VarietySize" format="dimension"/>
+        <attr name="ItemCount" format="integer"/>
+        <attr name="ItemSize" format="dimension"/>
+    </declare-styleable>
+
+</resources>
