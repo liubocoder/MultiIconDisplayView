@@ -14,6 +14,11 @@
         <attr name="VarietySize" format="dimension"/>
         <attr name="ItemCount" format="integer"/>
         <attr name="ItemSize" format="dimension"/>
+
+        <attr name="Gravity">
+            <flag name="left" value="0x0"/>
+            <flag name="center" value="0x1"/>
+        </attr>
     </declare-styleable>
 
 </resources>

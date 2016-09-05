@@ -42,6 +42,8 @@ public class MultiIconDisplayView extends View {
             int itemSize = ta.getDimensionPixelSize(R.styleable.MultiIconDisplayView_ItemSize, 0);
             int itemCount = ta.getInt(R.styleable.MultiIconDisplayView_ItemCount, 0);
 
+            mGravity = ta.getInt(R.styleable.MultiIconDisplayView_Gravity, 0);
+
             mItemSize = itemSize;
             if (itemCount != 0) {
                 mItemCount = itemCount;
@@ -130,6 +132,19 @@ public class MultiIconDisplayView extends View {
     //边界有效
     private boolean mHorizontalBoundValid = false;
     private boolean mVerticalSpanBoundValid = false;
+
+    public static final int LEFT_GRAVITY = 0;
+    public static final int CENTER_GRAVITY = 1;
+    //布局方向
+    private int mGravity;
+
+    /**
+     * @see android.view.Gravity
+     * @param gravity
+     */
+    public void setGravity(int gravity) {
+        this.mGravity = gravity;
+    }
 
     /**
      * 设置分类间隔 相对于控件宽高
@@ -286,7 +301,7 @@ public class MultiIconDisplayView extends View {
         int curTop = mHorizontalBoundValid ? getHorizontalSpan(w, h) : 0;
         for (int i = 0, l = mItems.length; i < l; i++) {
             int n = mItems[i].size();
-            int curLeft = mVerticalSpanBoundValid ? getVerticalSpan(w, h) : 0;
+            int curLeft = getItemLeft(row, 0,  mItems[i].size(), w, h, itemSize);
 
             lines += (n / row + ((n % row) == 0 ? 0 : 1));
             for (int j = 0, k = mItems[i].size(); j < k; j++) {
@@ -294,7 +309,7 @@ public class MultiIconDisplayView extends View {
                 ii.updateRect(curLeft, curTop, curLeft + itemSize, curTop + itemSize);
 
                 if (j != 0 && ((j % row) == (row - 1)) && (j != n - 1)) {
-                    curLeft = mVerticalSpanBoundValid ? getVerticalSpan(w, h) : 0;
+                    curLeft = getItemLeft(row, j + 1,  mItems[i].size(), w, h, itemSize);
                     curTop += (itemSize + getHorizontalSpan(w, h));
                 } else {
                     curLeft += (itemSize + getVerticalSpan(w, h));
@@ -315,6 +330,23 @@ public class MultiIconDisplayView extends View {
         mMeasureItemSize = itemSize;
 
         setMeasuredDimension(w, heightCount);
+    }
+
+    /**
+     * 处理布局方案 现在只支持左对齐和居中对齐
+     */
+    private int getItemLeft(int row, int idx, int total, int width, int height, int itemSize) {
+        int surp = total - idx;
+        int vSpace = mVerticalSpanBoundValid ? getVerticalSpan(width, height) : 0;
+        if (mGravity == LEFT_GRAVITY) {
+            return vSpace;
+        }
+        if (surp >= row) {
+            return vSpace;
+        } else {
+            int totalSize = itemSize * surp + (surp - 1) * vSpace;
+            return (width - totalSize ) / 2;
+        }
     }
 
     private int getVarietySpan(int w, int h) {
