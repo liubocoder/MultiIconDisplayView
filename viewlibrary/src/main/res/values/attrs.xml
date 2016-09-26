@@ -2,12 +2,15 @@
 <resources>
 
     <declare-styleable name="MultiIconDisplayView">
+        <!--高度的百分比-->
         <attr name="HorizontalSpanScale" format="float"/>
         <attr name="HorizontalSpan" format="dimension"/>
 
+        <!--宽度的百分比-->
         <attr name="VerticalSpanScale" format="float"/>
         <attr name="VerticalSpan" format="dimension"/>
 
+        <!--宽度或者高度的百分比-->
         <attr name="VarietySpanScale" format="float"/>
         <attr name="VarietySpan" format="dimension"/>
 
@@ -18,6 +21,7 @@
         <attr name="Gravity">
             <flag name="left" value="0x0"/>
             <flag name="center" value="0x1"/>
+            <flag name="center_vertical_style1" value="0x2"/>
         </attr>
     </declare-styleable>
 

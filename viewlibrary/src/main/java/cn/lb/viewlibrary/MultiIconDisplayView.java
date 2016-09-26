@@ -5,18 +5,25 @@ import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.ColorFilter;
 import android.graphics.Paint;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
 import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.support.annotation.NonNull;
 import android.util.AttributeSet;
+import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.LinearLayout;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class MultiIconDisplayView extends View {
+    public static final int GRAVITY_LEFT = 0;
+    public static final int GRAVITY_CENTER = 1;
+    public static final int GRAVITY_CENTER_VERTICAL_STYLE1 = 2;
     private static final boolean DEBUG = true;
 
     //默认个数 当未设置个数和item尺寸的时候有效
@@ -92,15 +99,15 @@ public class MultiIconDisplayView extends View {
 
             List<Drawable> list = new ArrayList<>();
             List<Drawable> list1 = new ArrayList<>();
-            for (int i = 0; i < 10; i++) {
+            for (int i = 0; i < 14; i++) {
                 list.add(drawable);
             }
-            for (int i = 0; i < 4; i++) {
+            for (int i = 0; i < 14; i++) {
                 list1.add(drawable);
             }
             List<List<Drawable>> all = new ArrayList<>();
             all.add(list);
-            all.add(list1);
+            //all.add(list1);
 
             setItems(all);
         }
@@ -130,17 +137,14 @@ public class MultiIconDisplayView extends View {
     private int mVarietyColor = 0x80FFFFFF;
 
     //边界有效
-    private boolean mHorizontalBoundValid = false;
-    private boolean mVerticalSpanBoundValid = false;
+    private boolean mHorizontalBoundValid = true;
+    private boolean mVerticalSpanBoundValid = true;
 
-    public static final int LEFT_GRAVITY = 0;
-    public static final int CENTER_GRAVITY = 1;
     //布局方向
     private int mGravity;
 
     /**
-     * @see android.view.Gravity
-     * @param gravity
+     * @param gravity {@link #GRAVITY_CENTER}
      */
     public void setGravity(int gravity) {
         this.mGravity = gravity;
@@ -254,6 +258,48 @@ public class MultiIconDisplayView extends View {
         }
     }
 
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        final int action = event.getAction();
+        switch (action) {
+            case MotionEvent.ACTION_DOWN:
+                break;
+            case MotionEvent.ACTION_MOVE:
+                break;
+            case MotionEvent.ACTION_UP:
+                clickEvent(event);
+                break;
+            case MotionEvent.ACTION_CANCEL:
+                break;
+        }
+        return true;
+    }
+    private void clickEvent(MotionEvent event) {
+        int x = (int) event.getX();
+        int y = (int) event.getY();
+        if (mItems != null && mItemClickListener != null) {
+            int idx = 0;
+            for (int i = 0; i < mItems.length; i++) {
+                for (int j = 0; j < mItems[i].size(); j++) {
+                    IconItem ii = mItems[i].get(j);
+                    if (ii.mRect != null && ii.mRect.contains(x, y)) {
+                        mItemClickListener.itemClickListener(this, idx);
+                        return;
+                    }
+                    idx++;
+                }
+            }
+        }
+    }
+
+    private OnItemClickListener mItemClickListener;
+    public void onItemClickListener(OnItemClickListener listener) {
+        mItemClickListener = listener;
+    }
+    public interface OnItemClickListener {
+        void itemClickListener(MultiIconDisplayView view, int position);
+    }
+
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
@@ -261,7 +307,9 @@ public class MultiIconDisplayView extends View {
             super.onMeasure(widthMeasureSpec, heightMeasureSpec);
             return;
         }
-        if (mOritation == LinearLayout.VERTICAL) {
+        if (mGravity == GRAVITY_CENTER_VERTICAL_STYLE1) {
+            measureCenterStyle1(widthMeasureSpec, heightMeasureSpec);
+        } else if (mOritation == LinearLayout.VERTICAL) {
             measureVerticalLayout(widthMeasureSpec, heightMeasureSpec);
         } else {
             // 未实现水平布局
@@ -269,15 +317,68 @@ public class MultiIconDisplayView extends View {
         }
     }
 
+
+    private int mCenterVerticalStyle1Lines = 2;
+    private float mCenterVerticalStyle1ItemSizeScale = 0.3F;//占高度的多少
+    private float mCenterVerticalStyle1ItemSpaceScale = 0.14F;//占高度的多少
+    private int mCenterVerticalStyle1LayoutChangeCount = 3;//当为三项或者更低的时候 需要改变布局方案
+    private void measureCenterStyle1(int widthMeasureSpec, int heightMeasureSpec) {
+        int w = MeasureSpec.getSize(widthMeasureSpec);
+        int h = MeasureSpec.getSize(heightMeasureSpec);
+        if (h == 0 && getParent() != null) {
+            ViewGroup viewGroup = (ViewGroup) getParent();
+            h = viewGroup.getHeight();
+        }
+        if (h == 0 || mItemCount == 0) {
+            setMeasuredDimension(w, h);
+            return;
+        }
+
+        int heightSpace = (int) (h * mCenterVerticalStyle1ItemSpaceScale);
+        int itemSize = (int) (h * mCenterVerticalStyle1ItemSizeScale);
+
+        int itemLeft;
+        int itemTop = heightSpace;
+        int itemVerticalSpace;
+        int itemHorizontalSpace = heightSpace;
+        final int itemLen = mItems[0].size();
+        int lines = itemLen / mItemCount + ((itemLen % mItemCount != 0) ? 1 : 0);
+        int extraLine = lines - mCenterVerticalStyle1Lines;
+        if (itemLen <= mItemCount) {
+            itemTop = (h - itemSize) / 2;
+        }
+
+        if (itemLen <= mCenterVerticalStyle1LayoutChangeCount) {
+            itemVerticalSpace = (w - itemLen * itemSize) / itemLen;
+            itemLeft = itemVerticalSpace / 2;
+        } else {
+            itemVerticalSpace = (w - mItemCount * itemSize) / (mItemCount + 1);
+            itemLeft = itemVerticalSpace;
+        }
+        int curLeft = itemLeft, curTop = itemTop;
+        for (int i = 0; i < itemLen;) {
+            IconItem ii = mItems[0].get(i);
+            ii.updateRect(curLeft, curTop, curLeft + itemSize, curTop + itemSize);
+
+            i++;
+            if (i != 0 && (i % mItemCount) == 0) {
+                curLeft = itemLeft;
+                curTop += (itemSize + itemHorizontalSpace);
+            } else {
+                curLeft += (itemSize + itemVerticalSpace);
+            }
+        }
+
+        mMeasureItemCount = mItemCount;
+        mMeasureItemSize = itemSize;
+
+        setMeasuredDimension(w, extraLine <= 0 ? h : (int) (h + extraLine * h * 0.5F + 1));
+    }
+
     private void measureVerticalLayout(int widthMeasureSpec, int heightMeasureSpec) {
         int w = MeasureSpec.getSize(widthMeasureSpec);
         int h = MeasureSpec.getSize(heightMeasureSpec);
         int hm = MeasureSpec.getMode(heightMeasureSpec);
-
-        if (mItems == null) {
-            setMeasuredDimension(w, 0);
-            return;
-        }
 
         int row = 0;
         int itemSize = 0;
@@ -338,7 +439,7 @@ public class MultiIconDisplayView extends View {
     private int getItemLeft(int row, int idx, int total, int width, int height, int itemSize) {
         int surp = total - idx;
         int vSpace = mVerticalSpanBoundValid ? getVerticalSpan(width, height) : 0;
-        if (mGravity == LEFT_GRAVITY) {
+        if (mGravity == GRAVITY_LEFT) {
             return vSpace;
         }
         if (surp >= row) {
@@ -444,8 +545,14 @@ public class MultiIconDisplayView extends View {
             }
             mDrawable.draw(c);
         }
+        public void setColorFilter(int color) {
+            setColorFilter(new PorterDuffColorFilter(color, PorterDuff.Mode.SRC_ATOP));
+        }
         public void setColorFilter(ColorFilter filter) {
             this.mColorFilter =  filter;
+            if (mRect.width() != 0) {
+                invalidate();
+            }
         }
         public void setPaddingScale(float scale) {
             mPaddingScale = scale;
